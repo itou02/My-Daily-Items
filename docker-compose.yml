@@ -1,0 +1,72 @@
+name: consumables
+services:
+  db:
+    image: mysql:8.4.0
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: con1234
+      MYSQL_DATABASE: record
+      MYSQL_USER: user
+      MYSQL_PASSWORD: con1234
+    ports:
+      - "3306:3306"
+    networks:
+      - docker
+
+  backend:
+    image: node:20.13.1-alpine3.20
+    restart: unless-stopped
+    working_dir: /apps/backend
+    volumes:
+      - ./backend:/apps/backend
+    environment:
+      DB_HOST: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: con1234
+    ports:
+      - "3001:3001"
+    entrypoint: ["sh", "-c", "npm i && npm start"]
+    depends_on:
+      - db
+    networks:
+      - docker
+  notify:
+    image: node:18-alpine
+    restart: unless-stopped
+    working_dir: /apps/notify
+    volumes:
+      - ./notify:/apps/notify
+    environment:
+      DB_HOST: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: con1234
+      TELEGRAM_TOKEN: "7331202669:AAHFbNKjhlIv1348scFePajEBaGlC7bT2aA"
+      TELEGRAM_CHAT_ID: "6665557332"
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
+    entrypoint: ["sh", "-c", "npm i && npm start"]
+    depends_on:
+      - db
+    networks:
+      - docker
+  frontend:
+    image: node:20.13.1-alpine3.20
+    restart: unless-stopped
+    working_dir: /apps/frontend
+    environment:
+      - REACT_APP_BACKEND_BASEURL=http://127.0.0.1:3001/
+    volumes:
+      - ./frontend:/apps/frontend
+    ports:
+      - "3000:3000"
+    entrypoint: ["sh", "-c", "npm i && npm start"]
+    depends_on:
+      - db
+    networks:
+      - docker
+networks:
+  docker:
+    driver: bridge
+volumes:
+  db-data:
